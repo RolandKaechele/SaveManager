@@ -15,6 +15,8 @@ Optionally integrates with [MapLoaderFramework](https://github.com/RolandKaechel
 - **Play time tracking** — accumulates play time across sessions
 - **Auto-save** — optionally save automatically on chapter change (requires `SAVEMANAGER_MLF`)
 - **MapLoaderFramework integration** — `MapLoaderSaveBridge` subscribes to `OnMapLoaded` and `OnChapterChanged` to track progress automatically (activated via `SAVEMANAGER_MLF`)
+- **CutsceneManager integration** — `SaveCutsceneBridge` (in the CutsceneManager package) records seen sequences as save flags to prevent repeated cutscenes (activated via `CUTSCENEMANAGER_SM`)
+- **EventManager integration** — `SaveEventBridge` (in the EventManager package) re-broadcasts `OnSaved`, `OnLoaded`, `OnDeleted`, and `OnFlagChanged` as named `GameEvent`s (activated via `EVENTMANAGER_SM`)
 - **Custom Inspector** — slot status table, save/load/delete buttons, flag checker
 
 
@@ -215,6 +217,8 @@ Example `slot_0.json`:
 | Unity 2022.3+ | ✓ | |
 | MapLoaderFramework | optional | Required when `SAVEMANAGER_MLF` is defined |
 | MoonSharp | optional | Required for Lua-triggered saves (included via MapLoaderFramework) |
+| CutsceneManager | optional | `SaveCutsceneBridge` lives there — enable `CUTSCENEMANAGER_SM` |
+| EventManager | optional | `SaveEventBridge` lives there — enable `EVENTMANAGER_SM` |
 
 
 ## Repository
