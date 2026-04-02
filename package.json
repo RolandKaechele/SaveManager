@@ -1,0 +1,31 @@
+{
+  "name": "com.rolandkaechele.savemanager",
+  "displayName": "Save Manager",
+  "version": "1.0.0",
+  "unity": "2022.3",
+  "description": "A modular save system for Unity. Manages multiple save slots with JSON persistence, game-event flags, chapter progress, visited maps, and arbitrary custom data. Optionally integrates with MapLoaderFramework for automatic map and chapter tracking.",
+  "author": {
+    "name": "Roland Kaechele",
+    "url": "https://github.com/RolandKaechele/SaveManager"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RolandKaechele/SaveManager.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "unity",
+    "save",
+    "progress",
+    "flags",
+    "persistence",
+    "slots",
+    "2d",
+    "rpg",
+    "framework"
+  ],
+  "documentationUrl": "https://github.com/RolandKaechele/SaveManager#readme",
+  "scripts": {
+    "postinstall": "node postinstall.js"
+  }
+}
