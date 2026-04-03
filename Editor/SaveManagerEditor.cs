@@ -12,6 +12,7 @@ namespace SaveManager.Editor
     public class SaveManagerEditor : UnityEditor.Editor
     {
         private string _flagToCheck = "";
+        private Texture2D[] _screenshots;
 
         public override void OnInspectorGUI()
         {
@@ -31,21 +32,39 @@ namespace SaveManager.Editor
             // Slot table
             EditorGUILayout.LabelField("Save Slots", EditorStyles.miniBoldLabel);
             var headers = mgr.GetSlotHeaders();
+
+            if (_screenshots == null || _screenshots.Length != headers.Count)
+                _screenshots = new Texture2D[headers.Count];
+
             for (int i = 0; i < headers.Count; i++)
             {
                 var h = headers[i];
+
+                // Load screenshot once; clear it when Save or Delete is pressed.
+                if (_screenshots[i] == null && mgr.HasSave(i))
+                    _screenshots[i] = mgr.GetScreenshot(i);
+
                 EditorGUILayout.BeginHorizontal();
+
+                if (_screenshots[i] != null)
+                    GUILayout.Label(_screenshots[i], GUILayout.Width(64), GUILayout.Height(36));
+                else
+                    GUILayout.Box(GUIContent.none, GUILayout.Width(64), GUILayout.Height(36));
+
                 string label = h != null
                     ? $"Slot {i}  Chp {h.currentChapter} — {h.currentMapId} — {h.lastSaveTime}"
                     : $"Slot {i}  (empty)";
                 EditorGUILayout.LabelField(label);
-                if (GUILayout.Button("Save", GUILayout.Width(55))) mgr.Save(i);
+                if (GUILayout.Button("Save", GUILayout.Width(55))) { mgr.Save(i); _screenshots[i] = null; }
                 GUI.enabled = mgr.HasSave(i);
                 if (GUILayout.Button("Load", GUILayout.Width(55))) mgr.Load(i);
-                if (GUILayout.Button("Del",  GUILayout.Width(40))) mgr.Delete(i);
+                if (GUILayout.Button("Del",  GUILayout.Width(40))) { mgr.Delete(i); _screenshots[i] = null; }
                 GUI.enabled = true;
                 EditorGUILayout.EndHorizontal();
             }
+
+            if (GUILayout.Button("Refresh Screenshots"))
+                _screenshots = null;
 
             EditorGUILayout.Space(4);
 

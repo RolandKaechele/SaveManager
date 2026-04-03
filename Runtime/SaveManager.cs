@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -33,6 +34,13 @@ namespace SaveManager.Runtime
 
         [Header("Active slot (read-only at runtime)")]
         [SerializeField] private int activeSlot = 0;
+
+        [Header("Screenshots")]
+        [Tooltip("Capture a thumbnail screenshot of the scene when saving.")]
+        [SerializeField] private bool captureScreenshotOnSave = true;
+
+        [Tooltip("Thumbnail width in pixels (height scaled proportionally). 0 = full resolution.")]
+        [SerializeField] private int screenshotWidth = 320;
 
         // -------------------------------------------------------------------------
         // Events
@@ -100,6 +108,9 @@ namespace SaveManager.Runtime
         private string SlotPath(int slot) =>
             Path.Combine(SaveDir, $"slot_{slot}.json");
 
+        private string ScreenshotPath(int slot) =>
+            Path.Combine(SaveDir, $"slot_{slot}.png");
+
         private void EnsureSaveDir()
         {
             if (!Directory.Exists(SaveDir))
@@ -142,6 +153,8 @@ namespace SaveManager.Runtime
                 Debug.Log($"[SaveManager] Saved to slot {slot}.");
                 OnSaved?.Invoke(slot);
                 PostSaveCallback?.Invoke(slot, _current);
+                if (captureScreenshotOnSave)
+                    StartCoroutine(CaptureScreenshotCoroutine(slot));
             }
             catch (Exception ex)
             {
@@ -192,6 +205,8 @@ namespace SaveManager.Runtime
             string path = SlotPath(slot);
             if (!File.Exists(path)) return;
             File.Delete(path);
+            string ssPath = ScreenshotPath(slot);
+            if (File.Exists(ssPath)) File.Delete(ssPath);
             RefreshSlotHeaders();
             Debug.Log($"[SaveManager] Deleted slot {slot}.");
             OnDeleted?.Invoke(slot);
@@ -298,6 +313,62 @@ namespace SaveManager.Runtime
 
         /// <summary>Add <paramref name="seconds"/> to the accumulated play time.</summary>
         public void AddPlayTime(float seconds) => _current.playTimeSeconds += seconds;
+
+        // -------------------------------------------------------------------------
+        // Screenshots
+        // -------------------------------------------------------------------------
+
+        /// <summary>
+        /// Load the saved screenshot for <paramref name="slot"/> as a <see cref="Texture2D"/>.
+        /// Returns null if no screenshot exists for that slot.
+        /// Caller is responsible for calling <see cref="Object.Destroy(Object)"/> on the texture when done.
+        /// </summary>
+        public Texture2D GetScreenshot(int slot)
+        {
+            string path = ScreenshotPath(slot);
+            if (!File.Exists(path)) return null;
+            byte[] bytes = File.ReadAllBytes(path);
+            var tex = new Texture2D(2, 2);
+            tex.LoadImage(bytes);
+            return tex;
+        }
+
+        private IEnumerator CaptureScreenshotCoroutine(int slot)
+        {
+            yield return new WaitForEndOfFrame();
+            Texture2D shot = ScreenCapture.CaptureScreenshotAsTexture();
+            Texture2D toSave = shot;
+            if (screenshotWidth > 0 && shot.width > screenshotWidth)
+            {
+                int h = Mathf.RoundToInt(shot.height * (screenshotWidth / (float)shot.width));
+                toSave = ScaleTexture(shot, screenshotWidth, h);
+                Destroy(shot);
+            }
+            byte[] png = toSave.EncodeToPNG();
+            Destroy(toSave);
+            try
+            {
+                File.WriteAllBytes(ScreenshotPath(slot), png);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[SaveManager] Screenshot save failed for slot {slot}: {ex.Message}");
+            }
+        }
+
+        private static Texture2D ScaleTexture(Texture2D source, int width, int height)
+        {
+            RenderTexture rt = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
+            Graphics.Blit(source, rt);
+            RenderTexture prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            Texture2D result = new Texture2D(width, height, TextureFormat.RGB24, false);
+            result.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            result.Apply();
+            RenderTexture.active = prev;
+            RenderTexture.ReleaseTemporary(rt);
+            return result;
+        }
 
         // -------------------------------------------------------------------------
         // New game
