@@ -42,6 +42,13 @@ namespace SaveManager.Runtime
         [Tooltip("Thumbnail width in pixels (height scaled proportionally). 0 = full resolution.")]
         [SerializeField] private int screenshotWidth = 320;
 
+        [Header("Security")]
+        [Tooltip("Encrypt save files with AES-256 + HMAC-SHA256. Tampered files are rejected on load.")]
+        [SerializeField] private bool encryptSaves = true;
+
+        [Tooltip("Secret passphrase used to derive the AES key. Change this to a project-specific value before shipping.")]
+        [SerializeField] private string encryptionKey = "CHANGE-THIS-TO-YOUR-OWN-SECRET-KEY";
+
         // -------------------------------------------------------------------------
         // Events
         // -------------------------------------------------------------------------
@@ -109,7 +116,7 @@ namespace SaveManager.Runtime
             Path.Combine(SaveDir, $"slot_{slot}.json");
 
         private string ScreenshotPath(int slot) =>
-            Path.Combine(SaveDir, $"slot_{slot}.png");
+            Path.Combine(SaveDir, encryptSaves ? $"slot_{slot}.dat" : $"slot_{slot}.png");
 
         private void EnsureSaveDir()
         {
@@ -145,9 +152,12 @@ namespace SaveManager.Runtime
                 _current.metadata.displayName = $"Chapter {_current.currentChapter}";
 
             string json = JsonUtility.ToJson(_current, prettyPrint: true);
+            string fileContent = encryptSaves
+                ? SaveCrypto.Encrypt(json, encryptionKey)
+                : json;
             try
             {
-                File.WriteAllText(SlotPath(slot), json);
+                File.WriteAllText(SlotPath(slot), fileContent);
                 activeSlot = slot;
                 RefreshSlotHeaders();
                 Debug.Log($"[SaveManager] Saved to slot {slot}.");
@@ -182,7 +192,21 @@ namespace SaveManager.Runtime
 
             try
             {
-                string json = File.ReadAllText(path);
+                string fileContent = File.ReadAllText(path);
+                string json;
+                if (encryptSaves)
+                {
+                    json = SaveCrypto.Decrypt(fileContent, encryptionKey);
+                    if (json == null)
+                    {
+                        Debug.LogError($"[SaveManager] Slot {slot} failed integrity check — file may be tampered or key is wrong.");
+                        return false;
+                    }
+                }
+                else
+                {
+                    json = fileContent;
+                }
                 var data = JsonUtility.FromJson<SaveData>(json);
                 if (data == null) return false;
                 _current = data;
@@ -205,8 +229,12 @@ namespace SaveManager.Runtime
             string path = SlotPath(slot);
             if (!File.Exists(path)) return;
             File.Delete(path);
-            string ssPath = ScreenshotPath(slot);
-            if (File.Exists(ssPath)) File.Delete(ssPath);
+            // Delete screenshot — remove both .dat (encrypted) and .png (legacy) if present
+            foreach (string ext in new[] { ".dat", ".png" })
+            {
+                string ssPath = Path.Combine(SaveDir, $"slot_{slot}{ext}");
+                if (File.Exists(ssPath)) File.Delete(ssPath);
+            }
             RefreshSlotHeaders();
             Debug.Log($"[SaveManager] Deleted slot {slot}.");
             OnDeleted?.Invoke(slot);
@@ -233,7 +261,12 @@ namespace SaveManager.Runtime
                 if (!File.Exists(path)) { _slotHeaders.Add(null); continue; }
                 try
                 {
-                    var data = JsonUtility.FromJson<SaveData>(File.ReadAllText(path));
+                    string fileContent = File.ReadAllText(path);
+                    string json = encryptSaves
+                        ? SaveCrypto.Decrypt(fileContent, encryptionKey)
+                        : fileContent;
+                    if (json == null) { _slotHeaders.Add(null); continue; }
+                    var data = JsonUtility.FromJson<SaveData>(json);
                     _slotHeaders.Add(data?.metadata);
                 }
                 catch { _slotHeaders.Add(null); }
@@ -326,8 +359,21 @@ namespace SaveManager.Runtime
         public Texture2D GetScreenshot(int slot)
         {
             string path = ScreenshotPath(slot);
+            // Also check legacy .png for saves made before encryption was added
+            if (!File.Exists(path))
+                path = Path.Combine(SaveDir, $"slot_{slot}.png");
             if (!File.Exists(path)) return null;
+
             byte[] bytes = File.ReadAllBytes(path);
+            if (encryptSaves && !path.EndsWith(".png"))
+            {
+                bytes = SaveCrypto.DecryptBytes(bytes, encryptionKey);
+                if (bytes == null)
+                {
+                    Debug.LogWarning($"[SaveManager] Screenshot for slot {slot} failed integrity check.");
+                    return null;
+                }
+            }
             var tex = new Texture2D(2, 2);
             tex.LoadImage(bytes);
             return tex;
@@ -346,6 +392,8 @@ namespace SaveManager.Runtime
             }
             byte[] png = toSave.EncodeToPNG();
             Destroy(toSave);
+            if (encryptSaves)
+                png = SaveCrypto.EncryptBytes(png, encryptionKey);
             try
             {
                 File.WriteAllBytes(ScreenshotPath(slot), png);

@@ -13,7 +13,8 @@ Optionally integrates with [MapLoaderFramework](https://github.com/RolandKaechel
 - **Visited maps** — remembers every map the player has visited
 - **Custom data** — arbitrary key/value strings for plugin-specific or game-specific state
 - **Play time tracking** — accumulates play time across sessions
-- **Screenshot capture** — optionally captures a scaled thumbnail of the scene on every save; PNG stored alongside the slot JSON
+- **Screenshot capture** — optionally captures a scaled thumbnail on every save; stored as an encrypted `.dat` file (or plain `.png` when encryption is off) alongside the slot JSON
+- **Save file encryption** — AES-256-CBC encryption + HMAC-SHA256 integrity check; tampered or corrupted files are rejected on load
 - **Auto-save** — optionally save automatically on chapter change (requires `SAVEMANAGER_MLF`)
 - **MapLoaderFramework integration** — `MapLoaderSaveBridge` subscribes to `OnMapLoaded` and `OnChapterChanged` to track progress automatically (activated via `SAVEMANAGER_MLF`)
 - **CutsceneManager integration** — `SaveCutsceneBridge` (in the CutsceneManager package) records seen sequences as save flags to prevent repeated cutscenes (activated via `CUTSCENEMANAGER_SM`)
@@ -74,6 +75,13 @@ Create a persistent GameObject, then add:
 | `captureScreenshotOnSave` | `true` | Capture a screenshot after each save |
 | `screenshotWidth` | `320` | Thumbnail width in pixels; height is scaled proportionally. Set to `0` for full resolution |
 
+**Security Inspector fields** (on `SaveManager`):
+
+| Field | Default | Description |
+| ----- | ------- | ----------- |
+| `encryptSaves` | `true` | Encrypt save files with AES-256-CBC + HMAC-SHA256 |
+| `encryptionKey` | *(placeholder)* | Passphrase used to derive the AES key — **change this before shipping** |
+
 ### 2. New game / load
 
 ```csharp
@@ -113,6 +121,20 @@ save.UnsetFlag("temp_flag");
 save.SetCustom("last_choice", "helped_engineer");
 string choice = save.GetCustom("last_choice");
 ```
+
+
+## Security
+
+When `encryptSaves` is enabled (default), save files are protected with **AES-256-CBC** encryption and an **HMAC-SHA256** integrity check:
+
+- The passphrase set in `encryptionKey` is hashed with SHA-256 to produce the 256-bit AES key.
+- A fresh random IV is generated for every save, so two identical game states produce different files.
+- The HMAC is verified *before* decryption (encrypt-then-MAC), preventing padding-oracle attacks.
+- Any file that fails the integrity check (wrong key, truncated, or manually edited) is rejected with an error log and the load returns `false`.
+
+> **Important:** Change `encryptionKey` to a unique project-specific value before shipping. The custom Inspector shows a warning while the default placeholder is still in use.
+>
+> **Limitation:** This deters casual cheating. It does not prevent a determined attacker from extracting the key from your compiled binary via reverse engineering. For competitive or online games, validate critical state server-side.
 
 
 ## MapLoaderFramework Integration
@@ -176,20 +198,51 @@ save.Save();
 
 ## Save File Format
 
-Save files are stored as pretty-printed JSON at:
+Save files are written to:
+
+**With `encryptSaves = true` (default):**
 
 ```
 Application.persistentDataPath/
   Saves/
-    slot_0.json
-    slot_0.png      ← screenshot thumbnail (if captureScreenshotOnSave is enabled)
+    slot_0.json     ← Base64-encoded encrypted blob
+    slot_0.dat      ← encrypted screenshot binary
+    slot_1.json
+    slot_1.dat
+    slot_2.json
+    slot_2.dat
+```
+
+**With `encryptSaves = false`:**
+
+```
+Application.persistentDataPath/
+  Saves/
+    slot_0.json     ← plain JSON
+    slot_0.png      ← plain PNG screenshot
     slot_1.json
     slot_1.png
     slot_2.json
     slot_2.png
 ```
 
-Example `slot_0.json`:
+### With encryption enabled (default)
+
+When `encryptSaves = true` the `.json` file contains a single Base64 string — not human-readable JSON. The blob layout is:
+
+```
+[IV – 16 bytes][HMAC-SHA256 – 32 bytes][AES-256-CBC ciphertext]
+```
+
+On disk it looks like:
+
+```
+slot_0.json  →  "3h7K2...base64...Qw=="
+```
+
+### With encryption disabled
+
+When `encryptSaves = false` the file is pretty-printed JSON:
 
 ```json
 {

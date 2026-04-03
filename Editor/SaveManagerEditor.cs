@@ -14,11 +14,24 @@ namespace SaveManager.Editor
         private string _flagToCheck = "";
         private Texture2D[] _screenshots;
 
+        private const string DefaultKey = "CHANGE-THIS-TO-YOUR-OWN-SECRET-KEY";
+
         public override void OnInspectorGUI()
         {
             DrawDefaultInspector();
 
             var mgr = (SaveManager.Runtime.SaveManager)target;
+
+            // Warn if the default encryption key is still in use
+            var keyProp = serializedObject.FindProperty("encryptionKey");
+            var encryptProp = serializedObject.FindProperty("encryptSaves");
+            if (encryptProp != null && encryptProp.boolValue &&
+                keyProp != null && keyProp.stringValue == DefaultKey)
+            {
+                EditorGUILayout.HelpBox(
+                    "You are using the default encryption key. Change \"Encryption Key\" to a project-specific secret before shipping.",
+                    MessageType.Warning);
+            }
 
             EditorGUILayout.Space(8);
             EditorGUILayout.LabelField("Runtime Controls", EditorStyles.boldLabel);
