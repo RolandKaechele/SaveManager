@@ -85,7 +85,7 @@ Create a persistent GameObject, then add:
 ### 2. New game / load
 
 ```csharp
-SaveManager.Runtime.SaveManager save = FindObjectOfType<SaveManager.Runtime.SaveManager>();
+SaveManager.Runtime.SaveManager save = FindFirstObjectByType<SaveManager.Runtime.SaveManager>();
 
 // Start a fresh game in slot 0
 save.NewGame(0);
