@@ -13,11 +13,12 @@ Optionally integrates with [MapLoaderFramework](https://github.com/RolandKaechel
 - **Visited maps** — remembers every map the player has visited
 - **Custom data** — arbitrary key/value strings for plugin-specific or game-specific state
 - **Play time tracking** — accumulates play time across sessions
+- **Screenshot capture** — optionally captures a scaled thumbnail of the scene on every save; PNG stored alongside the slot JSON
 - **Auto-save** — optionally save automatically on chapter change (requires `SAVEMANAGER_MLF`)
 - **MapLoaderFramework integration** — `MapLoaderSaveBridge` subscribes to `OnMapLoaded` and `OnChapterChanged` to track progress automatically (activated via `SAVEMANAGER_MLF`)
 - **CutsceneManager integration** — `SaveCutsceneBridge` (in the CutsceneManager package) records seen sequences as save flags to prevent repeated cutscenes (activated via `CUTSCENEMANAGER_SM`)
 - **EventManager integration** — `SaveEventBridge` (in the EventManager package) re-broadcasts `OnSaved`, `OnLoaded`, `OnDeleted`, and `OnFlagChanged` as named `GameEvent`s (activated via `EVENTMANAGER_SM`)
-- **Custom Inspector** — slot status table, save/load/delete buttons, flag checker
+- **Custom Inspector** — slot status table with screenshot thumbnails, save/load/delete buttons, flag checker
 
 
 ## Installation
@@ -65,6 +66,13 @@ Create a persistent GameObject, then add:
 | --------- | ------- |
 | `SaveManager` | Main orchestrator (required) |
 | `MapLoaderSaveBridge` | Auto-tracking of map/chapter (optional, requires `SAVEMANAGER_MLF`) |
+
+**Screenshot Inspector fields** (on `SaveManager`):
+
+| Field | Default | Description |
+| ----- | ------- | ----------- |
+| `captureScreenshotOnSave` | `true` | Capture a screenshot after each save |
+| `screenshotWidth` | `320` | Thumbnail width in pixels; height is scaled proportionally. Set to `0` for full resolution |
 
 ### 2. New game / load
 
@@ -149,6 +157,7 @@ save.Save();
 | `GetCustom(key)` | Return a custom saved string |
 | `SetCustom(key, value)` | Set a custom saved string |
 | `AddPlayTime(seconds)` | Accumulate play time |
+| `GetScreenshot(slot)` | Load saved thumbnail as `Texture2D`; returns null if none exists. Caller must call `Destroy()` on the texture when done |
 | `Current` | The active `SaveData` object |
 | `ActiveSlot` | Currently active slot index |
 | `OnSaved` | `event Action<int>` — fires after save |
@@ -173,8 +182,11 @@ Save files are stored as pretty-printed JSON at:
 Application.persistentDataPath/
   Saves/
     slot_0.json
+    slot_0.png      ← screenshot thumbnail (if captureScreenshotOnSave is enabled)
     slot_1.json
+    slot_1.png
     slot_2.json
+    slot_2.png
 ```
 
 Example `slot_0.json`:
