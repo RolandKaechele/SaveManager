@@ -3,6 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+#if ODIN_INSPECTOR
+using Sirenix.OdinInspector;
+#endif
 
 namespace SaveManager.Runtime
 {
@@ -22,7 +25,11 @@ namespace SaveManager.Runtime
     /// </summary>
     [AddComponentMenu("SaveManager/Save Manager")]
     [DisallowMultipleComponent]
+#if ODIN_INSPECTOR
+    public class SaveManager : SerializedMonoBehaviour
+#else
     public class SaveManager : MonoBehaviour
+#endif
     {
         // -------------------------------------------------------------------------
         // Inspector
@@ -33,6 +40,9 @@ namespace SaveManager.Runtime
         [SerializeField] private int maxSlots = 3;
 
         [Header("Active slot (read-only at runtime)")]
+#if ODIN_INSPECTOR
+        [ReadOnly]
+#endif
         [SerializeField] private int activeSlot = 0;
 
         [Header("Screenshots")]

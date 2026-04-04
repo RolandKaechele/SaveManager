@@ -21,6 +21,7 @@ Optionally integrates with [MapLoaderFramework](https://github.com/RolandKaechel
 - **EventManager integration** — `SaveEventBridge` (in the EventManager package) re-broadcasts `OnSaved`, `OnLoaded`, `OnDeleted`, and `OnFlagChanged` as named `GameEvent`s (activated via `EVENTMANAGER_SM`)
 - **StateManager integration** — `SaveManagerBridge` (in the StateManager package) persists the current `AppState` to save data and optionally restores it on load (activated via `STATEMANAGER_SM`)
 - **Custom Inspector** — slot status table with screenshot thumbnails, save/load/delete buttons, flag checker
+- **Odin Inspector integration** — `SerializedMonoBehaviour` base for full Inspector serialization of complex types; runtime-display fields marked `[ReadOnly]` in Play Mode (activated via `ODIN_INSPECTOR`)
 
 
 ## Installation
@@ -285,6 +286,7 @@ When `encryptSaves = false` the file is pretty-printed JSON:
 | MoonSharp | optional | Required for Lua-triggered saves (included via MapLoaderFramework) |
 | CutsceneManager | optional | `SaveCutsceneBridge` lives there — enable `CUTSCENEMANAGER_SM` |
 | EventManager | optional | `SaveEventBridge` lives there — enable `EVENTMANAGER_SM` |
+| Odin Inspector | optional | Required when `ODIN_INSPECTOR` is defined |
 
 
 ## Repository
