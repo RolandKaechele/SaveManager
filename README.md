@@ -19,6 +19,7 @@ Optionally integrates with [MapLoaderFramework](https://github.com/RolandKaechel
 - **MapLoaderFramework integration** — `MapLoaderSaveBridge` subscribes to `OnMapLoaded` and `OnChapterChanged` to track progress automatically (activated via `SAVEMANAGER_MLF`)
 - **CutsceneManager integration** — `SaveCutsceneBridge` (in the CutsceneManager package) records seen sequences as save flags to prevent repeated cutscenes (activated via `CUTSCENEMANAGER_SM`)
 - **EventManager integration** — `SaveEventBridge` (in the EventManager package) re-broadcasts `OnSaved`, `OnLoaded`, `OnDeleted`, and `OnFlagChanged` as named `GameEvent`s (activated via `EVENTMANAGER_SM`)
+- **StateManager integration** — `SaveManagerBridge` (in the StateManager package) persists the current `AppState` to save data and optionally restores it on load (activated via `STATEMANAGER_SM`)
 - **Custom Inspector** — slot status table with screenshot thumbnails, save/load/delete buttons, flag checker
 
 
