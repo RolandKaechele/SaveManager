@@ -1,3 +1,5 @@
+#if SAVEMANAGER_MLF
+using MapLoaderFramework.Runtime;
 using UnityEngine;
 
 namespace SaveManager.Runtime
@@ -13,15 +15,13 @@ namespace SaveManager.Runtime
     /// and optionally auto-save.</item>
     /// </list>
     /// </para>
-    /// <para>Without the scripting symbol this component compiles as a no-op stub.</para>
     /// </summary>
     [AddComponentMenu("SaveManager/Map Loader Save Bridge")]
     [DisallowMultipleComponent]
     public class MapLoaderSaveBridge : MonoBehaviour
     {
-#if SAVEMANAGER_MLF
         private SaveManager _save;
-        private MapLoaderFramework.Runtime.MapLoaderFramework _framework;
+        private MapLoaderFramework _framework;
 
         [Tooltip("If true, automatically call Save() when the chapter changes.")]
         [SerializeField] private bool autoSaveOnChapterChange = true;
@@ -29,8 +29,7 @@ namespace SaveManager.Runtime
         private void Awake()
         {
             _save      = GetComponent<SaveManager>() ?? FindObjectOfType<SaveManager>();
-            _framework = GetComponent<MapLoaderFramework.Runtime.MapLoaderFramework>()
-                         ?? FindObjectOfType<MapLoaderFramework.Runtime.MapLoaderFramework>();
+            _framework = GetComponent<MapLoaderFramework>() ?? FindObjectOfType<MapLoaderFramework>();
 
             if (_save == null)
             {
@@ -57,7 +56,7 @@ namespace SaveManager.Runtime
             _framework.OnChapterChanged -= OnChapterChanged;
         }
 
-        private void OnMapLoaded(MapLoaderFramework.Runtime.MapData mapData)
+        private void OnMapLoaded(MapData mapData)
         {
             if (mapData == null) return;
             _save.SetMap(mapData.id);
@@ -70,14 +69,6 @@ namespace SaveManager.Runtime
             if (autoSaveOnChapterChange)
                 _save.Save();
         }
-#else
-        // No-op stub when SAVEMANAGER_MLF is not defined
-
-        private void Awake()
-        {
-            Debug.Log("[MapLoaderSaveBridge] MapLoaderFramework integration is disabled. " +
-                      "Add the scripting define SAVEMANAGER_MLF to enable it.");
-        }
-#endif
     }
 }
+#endif
