@@ -286,6 +286,7 @@ When `encryptSaves = false` the file is pretty-printed JSON:
 | MoonSharp | optional | Required for Lua-triggered saves (included via MapLoaderFramework) |
 | CutsceneManager | optional | `SaveCutsceneBridge` lives there — enable `CUTSCENEMANAGER_SM` |
 | EventManager | optional | `SaveEventBridge` lives there — enable `EVENTMANAGER_SM` |
+| EnemyManager | optional | `ENEMYMANAGER_SM` bridge persists `enemy_defeated_<instanceId>` flags here |
 | Odin Inspector | optional | Required when `ODIN_INSPECTOR` is defined |
 
 
