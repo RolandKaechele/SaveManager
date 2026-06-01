@@ -1,8 +1,9 @@
-﻿{
+{
     "name": "SaveManager.Editor",
     "rootNamespace": "SaveManager.Editor",
     "references": [
-        "SaveManager.Runtime"
+        "SaveManager.Runtime",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [
         "Editor"
